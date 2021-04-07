@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="UTF-8">
+    <title>TOP画面（一般）</title>
+</head>
+
+ 
+<body>
+    <h1>TOP画面（一般）</h1>
+    <br>
+    <form method="post">
+        <a id="href" href="">日報作成</a>
+        <br>
+        <a id="edit" href="">日報編集</a>
+    </form>
+    
+</body>
+
+<script type="text/javascript">
+    var url = location.href;
+    var id = url.split('=');
+    console.log(id[1]);
+    var href = document.getElementById("href");
+    href.href = "/nippo_create?id=" + id[1];
+    var edit = document.getElementById("edit");
+    edit.href = "/nippo_edit_date_select?id=" + id[1];
+</script>
+ 
+</html>　

@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>電子投票システム Elect Vote 【投票装置 管理画面】</title>
+    <link rel='stylesheet' href='/stylesheets/reset.css' />
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+    <link rel='stylesheet' href='/lib/bootstrap4/bootstrap.min.css' />
+    <link rel='stylesheet' href='/lib/fontawesome/css/fontawesome.css' />
+    <link rel='stylesheet' href='/stylesheets/CSS_Support.css' />
+
+    <script src="/lib/bootstrap4/bootstrap.min.js"></script>
+    <script src="/lib/jquery/jquery.min.js"></script>
+    <script src="/javascripts/DOMUtil.js"></script>
+    <script src="/javascripts/CSS_Support.js"></script>
+
+    <style>
+    </style>
+
+  </head>
+  <body>
+    
+    <div class="">
+      <article class="">
+          <h4 class="card-title text-center mb-4 mt-1">投票装置 受付管理画面</h4>
+          <hr>
+          <div><span>投票状態:　</span><span id="vote_status"></span></div>
+
+
+          <p><a href="#demo1" class="modal" id="info_modal"></a></p>
+          <div class="modalBox" id="demo1">
+              <div class="modalInner" id="modalInner">
+              </div>
+          </div>
+
+          <p><a href="#demo2" class="modal" id="err_modal"></a></p>
+          <div class="modalBox" id="demo2">
+              <div class="modalInner modalInnerErr" id="modalInnerErr">
+              </div>
+          </div>
+
+          <p id="err_msg" class="text-danger text-center"></p>
+          <p id="success_msg" class="text-success text-center"></p>
+          <hr>
+
+          <h4>パスワード管理</h4>
+          <button id="publish" class="btn btn-outline-dark">ワンタイムパスワード発行</button>
+          <button id="republish" class="btn btn-outline-dark">期限切れパスワード再発行</button>
+          <button id="cancel" class="btn btn-outline-dark">発行されたパスワードのキャンセル</button>
+          <br />
+          <button id="password_check" class="btn btn-outline-dark">パスワードの状態確認</button>
+          <button id="oldtrace" class="btn btn-outline-dark">旧パスワードから再発行された新パスワードの追跡</button>
+          <button id="stat" class="btn btn-outline-dark">パスワード発行の全体状況</button>
+          <button id="js-show-popup" style="display: none;">HIDDEN</button>
+          <hr>
+
+          <h4>選挙の管理</h4>
+          <button id="vote_btn" class="btn btn-outline-dark">選挙の開始</button>
+          <button id="zero_check" class="btn btn-outline-dark">ゼロ票確認</button>
+          <hr>
+          <h4>投票端末・投票サーバ装置の管理</h4>
+          <button id="client_monitor" class="btn btn-outline-dark">投票端末監視モニター</button>
+          <button id="storage_check" class="btn btn-outline-dark">投票サーバ装置ストレージ障害チェック</button>
+          <button id="capacity_check" class="btn btn-outline-dark">投票サーバ装置ストレージ容量チェック</button>
+          <hr />
+          <h4>デザイン・レイアウトの管理</h4>
+          <button id="vote_btn_edit" class="btn btn-outline-dark">投票ボタンのレイアウト編集</button>
+          <hr />
+          <a href="/admin/logout"><button id="" class="btn btn-outline-dark">ログアウト</button></a>
+      </article> 
+
+      <div>接続先サーバ: <span id="server_type"></span></span></div>
+    </div>
+    
+
+
+
+
+
+
+
+    <!-- ここから下モーダル -->
+    <div class="popup" id="js-popup">
+      <div class="popup-inner" id="popup-inner">
+        <div class="close-btn" id="js-close-btn">
+          <b>x</b>
+        </div>
+        <div id="popup_content">
+        </div>
+      </div>
+      <div class="black-background" id="js-black-bg"></div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <script type="text/javascript">
+      modalSupport();
+      popupCommonModal();
+
+      var err_msg = getHrefValue('err_msg');
+      setTextContent('err_msg', err_msg);
+
+      $('#server_type').load('/serverType.txt');
+
+      document.addEventListener('DOMContentLoaded', function(ev){
+        var voteStatus = '<%= vote_status %>';
+        console.log(voteStatus);
+
+        if('stop' === voteStatus){
+          setTextContent('vote_status', '停止');
+          setTextContent('vote_btn', '選挙の開始');
+        }else{
+          setTextContent('vote_status', '開始中');
+          setTextContent('vote_btn', '選挙の停止');
+        }
+      });
+
+
+      var publish = () => {
+          var electionIdsArr = getCheckBoxValue('election');
+
+          for(var i=0; i < electionIdsArr.length; i++){
+            electionIdsArr[i] = parseInt(electionIdsArr[i]);
+          }
+          
+          var obj = {
+            election_ids: electionIdsArr,
+          };
+          var json = JSON.stringify(obj);
+          var url = '/admin/api/publish?json=' + json;
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              console.log(xhr);
+              if(200 === xhr.status){
+                var resObj = JSON.parse(xhr.response);
+
+                if('NG' === resObj.result){
+                  popErrModal(resObj.msg);
+                }else{
+                  popInfoModal('パスワードが発行されました');
+                  var paramStr = createHrefParamFromJSON(xhr.response);
+                  console.log(paramStr);
+                  var paperurl = '/admin/password_paper?' + paramStr;
+                  var paperwindow = window.open(paperurl, "window", 'width=350,height=400,menubar=yes,scrollbars=yes');
+                }
+              }
+          });
+      };
+
+      var republish = (old_otp_id) => {
+          var electionIdsArr = getCheckBoxValue('election');
+
+          for(var i=0; i < electionIdsArr.length; i++){
+            electionIdsArr[i] = parseInt(electionIdsArr[i]);
+          }
+          
+          var obj = {
+            election_ids: electionIdsArr,
+          };
+          var json = JSON.stringify(obj);
+          var url = `/admin/api/republish?json=${json}&old_otp_id=${old_otp_id}`;
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              console.log(xhr);
+              if(200 === xhr.status){
+                var resObj = JSON.parse(xhr.response);
+                console.log(resObj);
+                if('NG' === resObj.result){
+                  popErrModal(resObj.msg);
+                }else{
+                  popInfoModal('パスワードが再発行されました');
+                  var paramStr = createHrefParamFromJSON(xhr.response);
+                  console.log(paramStr);
+                  var paperurl = '/admin/password_paper?' + paramStr;
+                  window.open(paperurl, "window", 'width=350,height=200,menubar=yes,scrollbars=yes');
+                }
+              }
+          });
+      };
+
+      var zeroCheck = () => {
+          var url = `/admin/api/zero_check`;
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              if(200 === xhr.status){
+                createZeroCheckResultModal(xhr.response);
+                document.getElementById('js-show-popup').click();
+              }
+          });
+      };
+
+      var passwordStat = () => {
+          var url = `/admin/api/password_stat`;
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              var resObj = JSON.parse(xhr.response);
+              console.log(resObj);
+              if(200 === xhr.status){
+                createPasswordStatModal(resObj);
+              }
+          });
+      };
+
+      document.getElementById('publish').addEventListener('click', ()=>{
+        createElectionCheckboxes();
+        document.getElementById('js-show-popup').click();
+      });
+
+      document.getElementById('republish').addEventListener('click', ()=>{
+        createInputRepublishModal();
+        document.getElementById('js-show-popup').click();
+      });
+
+      document.getElementById('password_check').addEventListener('click', ()=>{
+        createInputPasswordIdModal();
+        document.getElementById('js-show-popup').click();
+      });
+
+      document.getElementById('oldtrace').addEventListener('click', ()=>{
+        createInputOldTraceModal();
+        document.getElementById('js-show-popup').click();
+      });
+
+      document.getElementById('cancel').addEventListener('click', ()=>{
+        createInputCancelModal();
+        document.getElementById('js-show-popup').click();
+      });
+
+      document.getElementById('stat').addEventListener('click', ()=>{
+        passwordStat();
+        document.getElementById('js-show-popup').click();
+      });
+
+      document.getElementById('vote_btn').addEventListener('click', ()=>{
+        voteBtnControl();
+        document.getElementById('js-show-popup').click();
+      });
+
+      document.getElementById('zero_check').addEventListener('click', ()=>{
+        zeroCheck();
+      });
+      
+      // document.getElementById('js-show-popup').addEventListener('click', ()=>{
+      //   createElectionCheckboxes();
+      // });
+
+      var createElectionCheckboxes = () => {
+          var url = '/admin/api/get_elections';
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              console.log(xhr);
+              if(200 === xhr.status){
+                createPublishModal(xhr);
+              }
+          });
+      };
+
+      var createCheckHashModal = (resObj) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var h4 = document.createElement('h4');
+        var h5 = document.createElement('h5');
+        var h52 = document.createElement('h5');
+        var br = document.createElement('br');
+        var br2 = document.createElement('br');
+        var div = document.createElement('div');
+        var div2 = document.createElement('div');
+        var btn = document.createElement('button');
+
+        h4.textContent = 'パスワード用紙のハッシュ確認';
+        h5.textContent = `無効化するパスワードID: ${resObj.otp_id}`;
+        h52.textContent = `ユニークハッシュ: ${resObj.otp_unique_hash}`;
+        div.textContent = '画面上の『ユニークハッシュ』と、提示されたパスワード用紙の下部の文字列を比較し、一致している場合のみ次の処理へ進んで下さい。';
+        div2.textContent = '※一致していない場合、別の投票所で発行された用紙である可能性があり、この投票所にて処理できません。『x』ボタンにてキャンセルして下さい。';
+        div2.className = 'alert alert-danger';
+
+        btn.textContent = 'ユニークハッシュが用紙と一致している';
+        btn.className = 'btn btn-outline-dark';
+
+        popupContentDiv.appendChild(h4);
+        popupContentDiv.appendChild(br);
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(h52);
+        popupContentDiv.appendChild(br2);
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(div2);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', ()=>{
+          createElectionCheckboxesRepublish(resObj);
+        });
+      };
+
+      var createElectionCheckboxesRepublish = (old_otp) => {
+          console.log('old_otp');
+          console.log(old_otp);
+          var url = '/admin/api/get_elections';
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              console.log(xhr);
+              if(200 === xhr.status){
+                createRePublishModal(xhr, old_otp);
+              }
+          });
+      };
+
+      var createPublishModal = (xhr) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+        var h5 = document.createElement('h5');
+        var electionIdsFormDiv = document.createElement('div');
+        var publishBtn = document.createElement('button');
+        publishBtn.className = 'btn btn-outline-dark';
+        var hr = document.createElement('hr');
+
+        
+        h5.textContent = 'パスワードに投票権を付与する選挙名を選んでください';
+        publishBtn.addEventListener('click', (ev) => {
+          var checks = getCheckBoxValue('election');
+
+          if(0 !== checks.length){
+            var a = document.getElementById('info_modal');
+            console.log(a);
+            publish();
+            document.getElementById('js-close-btn').click();
+          }else{
+            var div = document.createElement('div');
+            div.textContent = 'チェックが1つもついていません';
+            div.style.color = 'tomato';
+            popupContentDiv.appendChild(div);
+          }
+        });
+        publishBtn.textContent = 'パスワード発行';
+
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(electionIdsFormDiv);
+        popupContentDiv.appendChild(publishBtn);
+        popupContentDiv.appendChild(hr);
+
+
+        var electionsMap = JSON.parse(xhr.response);
+        console.log(electionsMap);
+        electionIdsFormDiv.innerHTML = '';
+
+        for(var key in electionsMap){
+          var label = document.createElement('label');
+          var input = document.createElement('input');
+          var span = document.createElement('span');
+          var br = document.createElement('div');
+
+          input.type = 'checkbox';
+          input.name = 'election';
+          input.value = key;
+          input.checked = true;
+
+          span.textContent = electionsMap[key];
+
+          label.appendChild(input);
+          label.appendChild(span);
+
+          electionIdsFormDiv.appendChild(br);
+          electionIdsFormDiv.appendChild(label);
+        }
+      };
+
+      var createRePublishModal = (xhr, old_otp) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+        var h6 = document.createElement('h6');
+        var h62 = document.createElement('h6');
+        var h5 = document.createElement('h5');
+        var electionIdsFormDiv = document.createElement('div');
+        var publishBtn = document.createElement('button');
+        publishBtn.className = 'btn btn-outline-dark';
+        var hr = document.createElement('hr');
+
+        
+        h6.textContent = `無効化する旧パスワードID: ${old_otp.otp_id}`;
+        h62.textContent = `無効化する旧パスワードのユニークハッシュ: ${old_otp.otp_unique_hash}`;
+        h5.textContent = '新規パスワードに投票権を付与する選挙名を選んでください';
+        publishBtn.addEventListener('click', (ev) => {
+          var checks = getCheckBoxValue('election');
+
+          if(0 !== checks.length){
+            var a = document.getElementById('info_modal');
+            console.log(a);
+            republish(old_otp.otp_id);
+            document.getElementById('js-close-btn').click();
+          }else{
+            var div = document.createElement('div');
+            div.textContent = 'チェックが1つもついていません';
+            div.style.color = 'tomato';
+            popupContentDiv.appendChild(div);
+          }
+        });
+        publishBtn.textContent = 'パスワード再発行';
+
+        popupContentDiv.appendChild(h6);
+        popupContentDiv.appendChild(h62);
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(electionIdsFormDiv);
+        popupContentDiv.appendChild(publishBtn);
+        popupContentDiv.appendChild(hr);
+
+
+        var electionsMap = JSON.parse(xhr.response);
+        console.log(electionsMap);
+        electionIdsFormDiv.innerHTML = '';
+
+        for(var key in electionsMap){
+          var label = document.createElement('label');
+          var input = document.createElement('input');
+          var span = document.createElement('span');
+          var br = document.createElement('div');
+
+          input.type = 'checkbox';
+          input.name = 'election';
+          input.value = key;
+          input.checked = true;
+
+          span.textContent = electionsMap[key];
+
+          label.appendChild(input);
+          label.appendChild(span);
+
+          electionIdsFormDiv.appendChild(br);
+          electionIdsFormDiv.appendChild(label);
+        }
+      };
+
+      var createInputPasswordIdModal = () => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var h5 = document.createElement('h5');
+        var input = document.createElement('input');
+        var br = document.createElement('br');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+
+        h5.textContent = '照会するパスワードID(用紙左下)を入力してください';
+        input.id = 'password_id';
+        input.type = 'number';
+        btn.textContent = 'パスワードの状態を照会';
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(input);
+        popupContentDiv.appendChild(br);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', (ev) => {
+          document.getElementById('js-close-btn').click();
+          var url = '/admin/api/password_check?id=' + input.value.toString();
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              if(200 === xhr.status){
+                var resObj = JSON.parse(xhr.response);
+                if(resObj.exists){
+                  createPassowrdCheckResultModal(resObj.detail);
+                  document.getElementById('js-show-popup').click();
+                }else{
+                  createNotFoundPasswordModal();
+                  document.getElementById('js-show-popup').click();
+                }
+              }
+          });
+        });
+      };
+
+      var createPassowrdCheckResultModal = (detail) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var h5 = document.createElement('h5');
+        var table = document.createElement('table');
+        var tbody = document.createElement('tbody');
+
+        table.className = 'table table-bordered table-sm';
+
+        h5.textContent = 'パスワードの状態';
+
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(table);
+        table.appendChild(tbody);
+
+        var trs = [];
+
+        var isVoted = false;
+        var isRepublished = false;
+        var hasState = false;
+
+        for(var key in detail){
+
+          if('投票済み' === detail[key]){
+            isVoted = true;
+          }
+
+          if('再発行' === detail[key]){
+            isRepublished = true;
+          }
+
+          if('状態' === key && '' !== detail[key]){
+            hasState = true;
+          }
+
+          var tr = document.createElement('tr');
+          var tdKey = document.createElement('td');
+          tdKey.style.width = '50%';
+          var tdV = document.createElement('td');
+          tdKey.textContent = key;
+          tdV.textContent = detail[key];
+          tr.appendChild(tdKey);
+          tr.appendChild(tdV);
+          trs.push(tr);
+        }
+
+        for(var tr of trs){
+          var tds = tr.children;
+
+          if(isVoted){
+            if('有効状態' === tds[0].textContent){
+              continue;
+            }
+            if('有効期限' === tds[0].textContent){
+              continue;
+            }
+            if('状態' === tds[0].textContent){
+              continue;
+            }
+          }
+
+          if(!isRepublished){
+            if('旧パスワードのID' === tds[0].textContent){
+              continue;
+            }
+          }
+
+          if(hasState){
+            if('有効期限' === tds[0].textContent){
+              continue;
+            }
+          }
+
+          if('状態' === tds[0].textContent){
+            if(isNull(tds[1].textContent) ){
+              continue;
+            }
+          }
+
+
+          tbody.appendChild(tr);
+        }
+      };
+
+      var createNotFoundPasswordModal = (detail) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        div.textContent = '該当するパスワードはありません。';
+
+        popupContentDiv.appendChild(div);
+      };
+
+      var createInputRepublishModal = () => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var h5 = document.createElement('h5');
+        var input = document.createElement('input');
+        var br = document.createElement('br');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+
+        h5.textContent = '旧パスワードのID(用紙左下)を入力して下さい。';
+        input.id = 'password_id';
+        input.type = 'number';
+        btn.textContent = 'この旧パスワードを無効化して新規パスワードを再発行';
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(input);
+        popupContentDiv.appendChild(br);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', (ev) => {
+          document.getElementById('js-close-btn').click();
+          var url = '/admin/api/republish_check?id=' + input.value.toString();
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              if(200 === xhr.status){
+                var resObj = JSON.parse(xhr.response);
+                console.log(resObj);
+                if('OK' === resObj.result){
+                  createCheckHashModal(resObj);
+                  document.getElementById('js-show-popup').click();
+                }else if('NG' === resObj.result){
+                  createNotRepublishPasswordModal(resObj);
+                  document.getElementById('js-show-popup').click();
+                }else if('INTIME' === resObj.result){
+                  createIntimePasswordModal(resObj);
+                  document.getElementById('js-show-popup').click();
+                }
+              }
+          });
+        });
+      };
+
+      var createNotRepublishPasswordModal = (resObj) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var div2 = document.createElement('div');
+        div.textContent = resObj.msg;
+        div2.textContent = `パスワードID: ${resObj.otp_id}`;
+
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(div2);
+      };
+
+      var createIntimePasswordModal = (resObj) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var div2 = document.createElement('div');
+        var div3 = document.createElement('div');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+        div.textContent = resObj.msg;
+        div.style.fontSize = '0.8em';
+        div2.textContent = `パスワードID: ${resObj.otp_id}`;
+        div3.textContent = 'パスワードを再発行しますか?';
+        btn.textContent = 'パスワードを再発行する';
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(div2);
+        popupContentDiv.appendChild(div3);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', ()=>{
+          document.getElementById('js-close-btn').click();
+          createCheckHashModal(resObj);
+          document.getElementById('js-show-popup').click();
+        });
+
+      };
+
+      var createInputOldTraceModal = () => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var h5 = document.createElement('h5');
+        var input = document.createElement('input');
+        var br = document.createElement('br');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+
+        h5.textContent = '旧パスワードのID(用紙左下)を入力して下さい。';
+        input.id = 'password_id';
+        input.type = 'number';
+        btn.textContent = '再発行された新パスワードの追跡';
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(input);
+        popupContentDiv.appendChild(br);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', (ev) => {
+          document.getElementById('js-close-btn').click();
+          var url = '/admin/api/oldtrace?id=' + input.value.toString();
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              if(200 === xhr.status){
+                var resObj = JSON.parse(xhr.response);
+                console.log(resObj);
+                if(resObj.exists){
+                  createShowTraceResultModal(resObj);
+                  document.getElementById('js-show-popup').click();
+                }else{
+                  createNotFoundTraceResultModal(resObj);
+                  document.getElementById('js-show-popup').click();
+                }
+              }
+          });
+        });
+      };
+
+      var createShowTraceResultModal = (resObj) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var div2 = document.createElement('div');
+        div.textContent = `旧パスワードID: ${resObj.old_otp_id}`;
+        div2.textContent = `新パスワードID: ${resObj.otp.id}`;
+
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(div2);
+      };
+
+      var createNotFoundTraceResultModal = (resObj) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var div2 = document.createElement('div');
+        div.textContent = resObj.msg;
+        div2.textContent = `指定されたパスワードID: ${resObj.old_otp_id}`;
+
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(div2);
+      };
+
+      var createInputCancelModal = () => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var h5 = document.createElement('h5');
+        var input = document.createElement('input');
+        var br = document.createElement('br');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+
+        div.textContent = '※【注意】: パスワードのキャンセル機能は、オペレータの操作ミスにより余分に発行してしまった際や付与する選挙権を選び直したいときに実行します。有権者からの要請により再発行する場合はこの機能ではなく『期限切れパスワード再発行』の機能を使用して下さい。';
+        div.style.color = 'tomato';
+
+
+        h5.textContent = 'キャンセルする発行済パスワードのID(用紙左下)を入力して下さい。';
+        input.id = 'password_id';
+        input.type = 'number';
+        btn.textContent = 'このパスワードをキャンセル';
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(h5);
+        popupContentDiv.appendChild(input);
+        popupContentDiv.appendChild(br);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', (ev) => {
+          document.getElementById('js-close-btn').click();
+          var url = '/admin/api/password_cancel_check?id=' + input.value.toString();
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              var resObj = JSON.parse(xhr.response);
+              if(200 === xhr.status){
+                if('OK' === resObj.result){
+                  createConfirmCancelModal(resObj.otp_id);
+                  document.getElementById('js-show-popup').click();
+                }else{
+                  createNotCancelModal(resObj);
+                  document.getElementById('js-show-popup').click();
+                }
+              }
+          });
+        });
+      };
+
+      var createConfirmCancelModal = (otp_id) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var div2 = document.createElement('div');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+
+        div.textContent = `パスワードID: ${otp_id}`;
+        div2.textContent = 'このパスワードをキャンセルします。よろしいですか?';
+
+        btn.textContent = 'キャンセルする';
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(div2);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', (ev) => {
+          document.getElementById('js-close-btn').click();
+          var url = '/admin/api/password_cancel?otp_id=' + otp_id;
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              if(200 === xhr.status){
+                if('SUCCESS' === xhr.response){
+                  popInfoModal('パスワードがキャンセルされました');
+                }            
+              }
+          });
+        });
+      };
+
+      var createNotCancelModal = (resObj) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var div2 = document.createElement('div');
+        div.textContent = resObj.msg;
+        div2.textContent = `パスワードID: ${resObj.otp_id}`;
+
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(div2);
+      };
+
+      var createPasswordStatModal = (resObj) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var h4 = document.createElement('h4');
+        var table = document.createElement('table');
+        var tbody = document.createElement('tbody');
+        table.className = 'table table-bordered table-sm';
+
+        h4.textContent = 'パスワード発行の全体状況';
+
+        popupContentDiv.appendChild(h4);
+        popupContentDiv.appendChild(table);
+        table.appendChild(tbody);
+
+        for(var key in resObj){
+          if('投票済み' === key){
+            continue;
+          }
+          var tr = document.createElement('tr');
+          var td1 = document.createElement('td');
+          var td2 = document.createElement('td');
+          td1.textContent = key;
+          td2.textContent = resObj[key].count;
+
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          tbody.appendChild(tr);
+        }
+      };
+
+      var voteBtnControl = (detail) => {
+        var url = '/admin/api/vote_status_check';
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        xhr.send();
+        xhr.addEventListener('load',()=>{
+            console.log(xhr.response);
+            if(200 === xhr.status){
+              if('stop' === xhr.response){
+                createStartModal();
+              }else{
+                createStopModal();
+              }
+            }
+        });
+      };
+
+      var createStartModal = () => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+
+        div.textContent = '現在選挙停止状態です。開始しますか?';
+        btn.textContent = '選挙を開始する';
+
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', ()=>{
+          var url = '/admin/api/vote_start';
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              if(200 === xhr.status){
+                if('SUCCESS' === xhr.response){
+                  popInfoModal('選挙が開始されました');
+                  document.getElementById('js-close-btn').click();
+                  setTextContent('vote_status', '開始中');
+                  setTextContent('vote_btn', '選挙の停止');
+                }
+              }
+          });
+        });
+      };
+
+      var createStopModal = () => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-outline-dark';
+
+        div.textContent = '現在選挙開始中です。停止しますか?';
+        btn.textContent = '選挙を停止する';
+
+        popupContentDiv.appendChild(div);
+        popupContentDiv.appendChild(btn);
+
+        btn.addEventListener('click', ()=>{
+          var url = '/admin/api/vote_stop';
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url);
+          xhr.send();
+          xhr.addEventListener('load',()=>{
+              console.log(xhr.response);
+              if(200 === xhr.status){
+                if('SUCCESS' === xhr.response){
+                  popInfoModal('選挙が停止されました');
+                  document.getElementById('js-close-btn').click();
+                  setTextContent('vote_status', '停止');
+                  setTextContent('vote_btn', '選挙の開始');
+                }
+              }
+          });
+        });
+      };
+
+      var createZeroCheckResultModal = (res) => {
+        var popupContentDiv = document.getElementById('popup_content');
+        popupContentDiv.innerHTML = '';
+
+        var div = document.createElement('div');
+
+        div.textContent = res;
+
+        popupContentDiv.appendChild(div);
+      };
+
+      var popInfoModal = (txt) => {
+        var modalInnerDiv = document.getElementById('modalInner');
+        modalInnerDiv.textContent = txt;
+        document.getElementById('info_modal').click();
+      };
+
+      var popErrModal = (txt) => {
+        var modalInnerErrDiv = document.getElementById('modalInnerErr');
+        modalInnerErrDiv.textContent = txt;
+        document.getElementById('err_modal').click();
+      };
+
+    </script>
+
+    <script type="text/javascript">
+      document.getElementById('vote_btn_edit').addEventListener('click', ()=>{
+        var url = '/admin/vote_btn_edit';
+        var voteEditWindow = window.open(url, "window2", 'menubar=yes,scrollbars=yes');
+      });
+
+      document.getElementById('client_monitor').addEventListener('click', ()=>{
+        var url = '/admin/client_monitor';
+        var voteEditWindow = window.open(url, "window3", 'menubar=yes,scrollbars=yes');
+      });
+    </script>
+
+    <script type="text/javascript">
+      document.getElementById('storage_check').addEventListener('click', ()=>{
+        var url = '/admin/api/storage_check';
+        var xhr = new XMLHttpRequest();            
+        xhr.open('GET', url);            
+        xhr.send();            
+        xhr.addEventListener('load',()=>{              
+          var resObj = JSON.parse(xhr.response);
+          console.log(resObj);
+          var popupContentDiv = document.getElementById('popup_content');
+          popupContentDiv.innerHTML = '';
+          
+          $.get('/serverType.txt', (serverType)=>{
+            var h2 = document.createElement('h2');
+            var divServer = document.createElement('div');
+            var divStatus = document.createElement('div');
+            var divMsg = document.createElement('div');
+            var divErr = document.createElement('div');
+
+            h2.textContent = 'ストレージ障害チェック';
+            divServer.textContent = `接続先サーバ: ${serverType}`;
+            divStatus.textContent = `結果: ${resObj.status}`;
+            if('OK' === resObj.status){
+              divStatus.style.color = 'lightgreen';
+            }else{
+              divStatus.style.color = 'tomato';
+            }
+
+            divMsg.innerHTML = resObj.msg;
+            divErr.textContent = resObj.err;
+
+            popupContentDiv.appendChild(h2);
+            popupContentDiv.appendChild(divServer);
+            popupContentDiv.appendChild(divStatus);
+            popupContentDiv.appendChild(divMsg);
+            popupContentDiv.appendChild(divErr);
+
+            document.getElementById('js-show-popup').click();
+          });
+        });
+      });
+    </script>
+
+    <script type="text/javascript">
+      document.getElementById('capacity_check').addEventListener('click', ()=>{
+        var url = '/admin/api/capacity_check';
+        var xhr = new XMLHttpRequest();            
+        xhr.open('GET', url);            
+        xhr.send();            
+        xhr.addEventListener('load',()=>{              
+          var resObj = JSON.parse(xhr.response);
+          console.log(resObj);
+          var popupContentDiv = document.getElementById('popup_content');
+          popupContentDiv.innerHTML = '';
+          
+          $.get('/serverType.txt', (serverType)=>{
+            console.log('HOGE');
+            var h2 = document.createElement('h2');
+            var divServer = document.createElement('div');
+            var divDf = document.createElement('div');
+            var divDuLogdir = document.createElement('div');
+            var divDuEPrimary = document.createElement('div');
+            var divDuFReplica = document.createElement('div');
+            var br = document.createElement('br');
+            var br2 = document.createElement('br');
+            var br3 = document.createElement('br');
+
+            h2.textContent = 'ストレージ容量チェック';
+            divServer.textContent = `接続先サーバ: ${serverType}`;
+
+            divDf.style.backgroundColor = 'whitesmoke';
+            divDuLogdir.style.backgroundColor = 'whitesmoke';
+            divDuEPrimary.style.backgroundColor = 'whitesmoke';
+            divDuFReplica.style.backgroundColor = 'whitesmoke';
+
+            divDf.innerHTML = resObj.df;
+            divDuLogdir.textContent = resObj.du_logdir;
+            divDuEPrimary.textContent = resObj.du_e_primary;
+            divDuFReplica.textContent = resObj.du_f_replica;
+
+            popupContentDiv.appendChild(h2);
+            popupContentDiv.appendChild(divServer);
+            popupContentDiv.appendChild(divDf);
+            popupContentDiv.appendChild(br);
+            popupContentDiv.appendChild(divDuEPrimary);
+            popupContentDiv.appendChild(divDuFReplica);
+            popupContentDiv.appendChild(divDuLogdir);
+
+            document.getElementById('js-show-popup').click();
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="UTF-8">
+    <title>日報履歴表示</title>
+</head>
+ 
+<body>
+
+    <h1 style="font-family: arial black">社員名：<%= date_lists[0]['name'] %></h1>
+
+    <ul id="ul"></ul>
+    <% for(var i = 0; i < date_lists.length; i++){ %>
+        <li style="font-family: arial black" class="dates" id="<%= date_lists[i]['id'] %>"><%= date_lists[i]['create_date'] %></li>
+        <!-- <li><a href="/nippo_history?id=<%= date_lists[i]['id'] %>"><%= date_lists[i]['create_date'] %></a></li> -->
+    <% } %>
+
+</body>
+
+<script type="text/javascript">
+
+var dates = document.getElementsByClassName('dates');
+var parent = document.createElement('div');
+parent.style = "padding: 10px; margin-bottom: 10px; border: 5px double #333333; border-radius: 10px;";
+
+Array.prototype.forEach.call(dates, function(date, idx){ 
+    // console.log(date.id);
+    
+    date.addEventListener('click', function(){
+
+        parent.innerHTML = '';
+        
+        console.log(idx);
+        var url = `/nippo_history?id=`+date.id;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        xhr.send();
+        xhr.addEventListener('load',()=>{
+              //console.log(xhr.response);
+              if(200 === xhr.status){
+                
+                var resObj = JSON.parse(xhr.response);
+                var br = document.createElement('br');
+                var li = document.getElementById(date.id);
+                      
+                li.appendChild(parent);
+
+                var div1 = document.createElement('div');
+                div1.textContent = "出勤時刻：";
+                parent.appendChild(div1);
+
+                var attendance_time = document.createElement('input');
+                attendance_time.setAttribute("type","time"); 
+                attendance_time.setAttribute("value",resObj.result.attendance_time); 
+                div1.appendChild(attendance_time);
+                div1.appendChild(br);
+
+                div2 = document.createElement('div');
+                div2.textContent = "退勤時刻：";
+                parent.appendChild(div2);
+
+                var leave_time = document.createElement('input');
+                leave_time.setAttribute("type","time"); 
+		        leave_time.setAttribute("value",resObj.result.leave_time); 
+                div2.appendChild(leave_time);
+                div2.appendChild(br);
+
+                div3 = document.createElement('div');
+                div3.textContent = "休憩時間：";
+                parent.appendChild(div3);
+
+                var break_time = document.createElement('input');
+                break_time.setAttribute("type","text"); 
+                break_time.setAttribute("value",resObj.result.break_time+"時間"); 
+                break_time.setAttribute("size",5); 
+                div3.appendChild(break_time);
+                div3.appendChild(br);
+
+                div4 = document.createElement('div');
+                div4.textContent = "勉強時間：";
+                parent.appendChild(div4);
+
+                var study_time = document.createElement('input');
+                study_time.setAttribute("type","text"); 
+                study_time.setAttribute("value",resObj.result.study_time+"時間"); 
+                study_time.setAttribute("size",5); 
+                div4.appendChild(study_time);
+                div4.appendChild(br);
+
+                div5 = document.createElement('div');
+                div5.textContent = "業務報告：";
+                parent.appendChild(div5);
+
+                var report = document.createElement('textarea');
+                report.setAttribute("rows","8"); 
+                report.style = "display:flex";
+                report.value = resObj.result.report; 
+                report.setAttribute("cols",43); 
+                div5.appendChild(report);
+                div5.appendChild(br);
+
+                div6 = document.createElement('div');
+                div6.textContent = "気分の良さ：";
+                parent.appendChild(div6);
+
+                var feel1 = document.createElement('input');
+                feel1.type = 'radio';
+                feel1.name = 'feel';
+                feel1.value = 'verrygood';
+                text = document.createTextNode("とても良い");
+                div6.appendChild(text);
+                div6.appendChild(feel1);
+
+                var feel2 = document.createElement('input');
+                feel2.type = 'radio';
+                feel2.name = 'feel';
+                feel2.value = 'good';
+                text = document.createTextNode("/良い");
+                div6.appendChild(text);
+                div6.appendChild(feel2);
+
+                var feel3 = document.createElement('input');
+                feel3.type = 'radio';
+                feel3.name = 'feel';
+                feel3.value = 'normal';
+                text = document.createTextNode("/普通");
+                div6.appendChild(text);
+                div6.appendChild(feel3);
+
+                var feel4 = document.createElement('input');
+                feel4.type = 'radio';
+                feel4.name = 'feel';
+                feel4.value = 'bad';
+                text = document.createTextNode("/悪い");
+                div6.appendChild(text);
+                div6.appendChild(feel4);
+
+                var feel5 = document.createElement('input');
+                feel5.type = 'radio';
+                feel5.name = 'feel';
+                feel5.value = 'verrybad';
+                text = document.createTextNode("/とても悪い");
+                div6.appendChild(text);
+                div6.appendChild(feel5);
+                div6.appendChild(br);
+                
+                div7 = document.createElement('div');
+                div7.textContent = "食事は3食とったか：";
+                parent.appendChild(div7);
+
+                var meal1 = document.createElement('input');
+                meal1.type = 'radio';
+                meal1.name = 'meal';
+                meal1.value = 'yes';
+                text = document.createTextNode("はい");
+                div7.appendChild(text);
+                div7.appendChild(meal1);
+
+                var meal2 = document.createElement('input');
+                meal2.type = 'radio';
+                meal2.name = 'meal';
+                meal2.value = 'no';
+                text = document.createTextNode("/いいえ");
+                div7.appendChild(text);
+                div7.appendChild(meal2);
+                div7.appendChild(br);
+
+                div8 = document.createElement('div');
+                div8.textContent = "十分な睡眠をとったか：";
+                parent.appendChild(div8);
+
+                var sleep1 = document.createElement('input');
+                sleep1.type = 'radio';
+                sleep1.name = 'sleep';
+                sleep1.value = 'yes';
+                text = document.createTextNode("はい");
+                div8.appendChild(text);
+                div8.appendChild(sleep1);
+
+                var sleep2 = document.createElement('input');
+                sleep2.type = 'radio';
+                sleep2.name = 'sleep';
+                sleep2.value = 'no';
+                text = document.createTextNode("/いいえ");
+                div8.appendChild(text);
+                div8.appendChild(sleep2);
+                div8.appendChild(br);
+
+                div9 = document.createElement('div');
+                div9.textContent = "心配事・相談事がある場合は記入：";
+                div9.appendChild(br);
+                parent.appendChild(div9);
+
+                var consultation = document.createElement('textarea');
+                consultation.setAttribute("rows","8"); 
+                consultation.style = "display:flex";
+                consultation.value = resObj.result.consultation; 
+                consultation.setAttribute("cols",43); 
+                div9.appendChild(consultation);
+                div9.appendChild(br);
+
+                
+
+                var feel_value = resObj.result.feel;
+                var meal_value = resObj.result.meal;
+                var sleep_value = resObj.result.sleep;
+
+                var feels = document.getElementsByName('feel');
+                var meals = document.getElementsByName('meal');
+                var sleeps = document.getElementsByName('sleep');
+
+                function checked(array, value){
+                    //console.log("value:"+value);
+                    for(var i = 0; i < array.length; i++){
+                        //console.log(array[i].value);
+                        if(array[i].value === value){
+                            array[i].checked = true;
+                        }
+                    }
+                }
+
+                checked(feels, feel_value);
+                checked(meals, meal_value);
+                checked(sleeps, sleep_value);
+              }
+              
+        });
+    }); 
+});
+
+</script>
+ 
+</html>

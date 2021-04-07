@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="UTF-8">
+    <title>日報履歴表示</title>
+</head>
+ 
+<body>
+
+    <form action="/nippo_history_employee_select" method="POST">
+        <input type="text" name="search">
+        <input type="submit" value="検索">
+    </form>
+
+    <ul id="ul"></ul>
+    
+    <% for(var i = 0; i < employee_lists.length; i++){ %>
+        <li><a href="/nippo_history_date_select?id=<%= employee_lists[i]['id'] %>"><%= employee_lists[i]['name'] %></li>
+    <% } %>
+
+</body>
+
+<script type="text/javascript">
+
+</script>
+ 
+</html>

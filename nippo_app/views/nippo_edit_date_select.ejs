@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="UTF-8">
+    <title>日報履歴表示</title>
+</head>
+ 
+<body>
+
+
+    <ul id="ul"></ul>
+    <% for(var i = 0; i < date_lists.length; i++){ %>
+        <!-- <li class="dates" id="<%= date_lists[i]['id'] %>"><%= date_lists[i]['create_date'] %></li> -->
+        <li><a href="/nippo_edit?id=<%= date_lists[i]['id'] %>"><%= date_lists[i]['create_date'] %></a></li>
+    <% } %>
+
+</body>
+
+<script type="text/javascript">
+
+
+
+</script>
+ 
+</html>

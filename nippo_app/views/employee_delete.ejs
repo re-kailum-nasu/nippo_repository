@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title><%= title %></title>
+  </head>
+
+  <script type="text/javascript">
+
+  function check(){
+    if(window.confirm('削除してもよろしいですか？')){ // 確認ダイアログを表示
+      return true; // 「OK」時は送信を実行
+    }else{ // 「キャンセル」時の処理
+      window.alert('キャンセルされました'); // 警告ダイアログを表示
+      return false; // 送信を中止
+    }
+  }
+
+  </script>
+
+  <body>
+
+
+    <h1><%= title %></h1>
+
+    <form action="/employee_delete" method="POST" onSubmit="return check()">
+        <select name="select">
+        
+            <% for(var i = 0; i < employee_lists.length; i++){ %>
+                <option value="<%= employee_lists[i]['id'] %>"><%= employee_lists[i]['name'] %></option>
+            <% } %>
+        </select>
+
+        <input id="btn" type="submit"name="submit"value="削除" />
+    </form>
+
+  </body>
+
+  </html>

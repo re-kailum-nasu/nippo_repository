@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="UTF-8">
+    <title>日報履歴表示</title>
+</head>
+ 
+<body>
+
+    <form action="/nippo_edit" method="POST">
+    出勤時刻：
+        <input type="hidden" name="employee_id" value="<%=nippo_data['employee_id'] %>">
+        <input type="hidden" name="nippo_id" value="<%=nippo_data['id'] %>">
+        <input type="time" name="attendance_time" value="<%=nippo_data['attendance_time'] %>">
+        <br>
+    
+        退勤時刻：
+        <input type="time" name="leave_time" value="<%=nippo_data['leave_time'] %>">
+        <br>
+    
+        休憩時間(半角数字)：
+        <input type="text" name="bleak_time" value="<%=nippo_data['break_time'] %>" size="5">h
+        <br>
+    
+        勉強時間(半角数字)：
+        <input type="text" name="study_time" value="<%=nippo_data['study_time'] %>" size="5">h
+        <br>
+        </p>
+    
+        <p>
+        業務報告：
+        <br>
+        <textarea name="report" rows="8" cols="43" placeholder="50文字程度"><%=nippo_data['report'] %></textarea>
+        <br>
+        </p>
+    
+        <p>
+        気分の良さ：
+        <input type="hidden" id="feel_value" value="<%=nippo_data['feel'] %>">
+        非常に良い<input type="radio" name="feel" value="verrygood">
+        /良い<input type="radio" name="feel" value="good">
+        /普通<input type="radio" name="feel" value="normal">
+        /悪い<input type="radio" name="feel" value="bad">
+        /非常に悪い<input type="radio" name="feel" value="verrybad">
+        </p>
+    
+        <p>
+        食事は3食とったか：
+        <input type="hidden" id="meal_value" value="<%=nippo_data['meal'] %>">
+        はい<input type="radio" name="meal" value="yes">
+        /いいえ<input type="radio" name="meal" value="no">
+        </p>
+    
+        <p>
+        十分な睡眠をとったか：
+        <input type="hidden" id="sleep_value" value="<%=nippo_data['sleep'] %>">
+        はい<input type="radio" name="sleep" value="yes">
+        /いいえ<input type="radio" name="sleep" value="no">
+        </p>
+    
+        相談事・心配事がある場合は記入：
+        <br>
+    
+        <textarea name="consultation" rows="8" cols="43"><%=nippo_data['consultation'] %></textarea>
+    
+        <br>
+
+        <input type="submit" name="submit" value="送信">
+
+    </form>
+    
+</body>
+
+<script type="text/javascript">
+
+var feel_value = document.getElementById('feel_value');
+console.log(feel_value);
+var meal_value = document.getElementById('meal_value');
+console.log(meal_value);
+var sleep_value = document.getElementById('sleep_value');
+console.log(sleep_value);
+
+var feels = document.getElementsByName('feel');
+var meals = document.getElementsByName('meal');
+var sleeps = document.getElementsByName('sleep');
+
+function checked(array, value){
+    console.log("value:"+value.value);
+    for(var i = 0; i < array.length; i++){
+        console.log(array[i]);
+        if(array[i].value === value.value){
+            array[i].checked = true;
+        }
+    }
+}
+
+checked(feels, feel_value);
+checked(meals, meal_value);
+checked(sleeps, sleep_value);
+
+
+</script>
+ 
+</html>

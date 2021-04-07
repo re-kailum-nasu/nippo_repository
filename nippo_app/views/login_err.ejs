@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ログイン</title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1>ログイン</h1>
+    <form action="/login" method="POST">
+        社員名　　：<input type="text" name="employee_name" />
+        <br>
+        パスワード：<input type="password" name ="password" />
+        <br>
+        <input type="submit" value="ログイン" />
+    </form>
+    <br>
+    <div style="color:red;">社員名またはパスワードが間違っています</div>
+  </body>
+</html>
